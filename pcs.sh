@@ -27,7 +27,8 @@ echo "The Size of $localFolder is $theSizeNow MB at `date`." >> $folderSize
 # main function
 function PCS(){
   echo "Caculate the size of $localFolder and write to $folderSize."
-  if [ ! -e /usr/local/bin/pcs ];then
+  pcsLocation=`which pcs`
+  if [ ! -e $pcsLocation ];then
     echo "No /usr/local/bin/pcs found. Please install pcs at first."
     exit 2
   fi
@@ -35,7 +36,7 @@ function PCS(){
     echo "No ~/.pcs/pcs.context config found. Please run pcs login at first."
     exit 2
   fi
-  /usr/local/bin/pcs --context=~/.pcs/pcs.context synch -cdr $localFolder /$folderToSync
+  $pcsLocation --context=~/.pcs/pcs.context synch -cdr $localFolder /$folderToSync
 }
 
 # compare with the size with one hour and two hours before
