@@ -1,42 +1,55 @@
 #!/bin/bash
-folderToSync=Ericsson
+#folderToSync="Ericsson"
+folderToSync="qq"
+#localFolder="/Baidu_Backup/$folderToSync"
+localFolder="/tmp/$folderToSync"
 
-# kill old pcs process
+# kill old pcs process if any
 hourMinNow=`date +\%H:\%M`
-pcsExist=`ps -ef | grep pcs | grep -v "$hourMinNow" | grep -v grep | awk '{print $2}'`
+pcsExist=`ps -ef | grep pcs | grep -v "$hourMinNow" | grep -v grep | grep -v MacOS | grep -v vi | awk '{print $2}'`
 pcsArray=($pcsExist)
 if [ ! -z ${pcsArray[0]} ];then
-  for pcsPro in ${pcsArray[@]}
+  for pcsProcess in ${pcsArray[@]}
     do
-      echo Kill old PCS process id $pcsPro.
-      kill -9 $pcsPro
+      echo Kill old PCS process id $pcsProcess.
+      kill -9 $pcsProcess
     done
 fi
 
-# write the folder size
-folderSize=/Baidu_Backup/$folderToSync/size.log
+# write the folder size to the size.log
+folderSize=$localFolder/size.log
 if [ ! -e $folderSize ];then
   touch $folderSize
 fi
-theSizeNow=`du -s -m /Baidu_Backup/$folderToSync/ | awk '{print $1}'`
-echo "The Size of /Baidu_Backup/$folderToSync/ is $theSizeNow MB at `date`." >> $folderSize
+theSizeNow=`du -s -m $localFolder | awk '{print $1}'`
+echo "The Size of $localFolder is $theSizeNow MB at `date`." >> $folderSize
 
-PCS(){
-  echo "Caculate the size of /Baidu_Backup/$folderToSync."
-  /usr/local/bin/pcs --context=/home/root/.pcs/pcs.context synch -cdr /Baidu_Backup/$folderToSync /$folderToSync
+# main function
+function PCS(){
+  echo "Caculate the size of $localFolder and write to $folderSize."
+  if [ ! -e /usr/local/bin/pcs ];then
+    echo "No /usr/local/bin/pcs found. Please install pcs at first."
+    exit 2
+  fi
+  if [ ! -e ~/.pcs/pcs.context ];then
+    echo "No ~/.pcs/pcs.context config found. Please run pcs login at first."
+    exit 2
+  fi
+  /usr/local/bin/pcs --context=~/.pcs/pcs.context synch -cdr $localFolder /$folderToSync
 }
 
+# compare with the size with one hour and two hours before
 line_folderSize=`wc -l $folderSize | awk '{print $1}'`
 
 if [ $line_folderSize -ge 2 ];then
 
-    folderSize_OneBefore=`tail -n 1 /Baidu_Backup/$folderToSync/size.log | awk '{print $6}'`
+    folderSize_OneBefore=`tail -n 1 $folderSize | awk '{print $6}'`
     if [ -z $folderSize_OneBefore ];then
       PCS
       exit 1
     fi
 
-    folderSize_TwoBefore=`tail -n 2 /Baidu_Backup/$folderToSync/size.log | head -n 1 | awk '{print $6}'`
+    folderSize_TwoBefore=`tail -n 2 $folderSize | head -n 1 | awk '{print $6}'`
     if [ -z $folderSize_TwoBefore ];then
       PCS
       exit 1
